@@ -31,43 +31,43 @@ This project is structured around six core questions the data must answer before
 
 All raw data lives in `pieces/01-world-cup-48/data/raw/` and is not modified after acquisition. All transformations happen in processing scripts.
 
-### 1. World Cup match results
+### 1. World Cup match data (stage + results, 1930–2022)
 
-**File:** `WorldCupMatches.csv`  
-**Source:** [Kaggle — FIFA World Cup Dataset](https://www.kaggle.com/datasets/abecklas/fifa-world-cup)  
-**Coverage:** All World Cup matches, 1930–2014  
-**Key fields:** Year, stage, home/away team, home/away goals, attendance, half-time scores  
-**Used for:** Group stage competitiveness analysis, goal differential trends, upset identification
-
----
-
-### 2. World Cup tournament summaries
-
-**File:** `WorldCups.csv`  
-**Source:** [Kaggle — FIFA World Cup Dataset](https://www.kaggle.com/datasets/abecklas/fifa-world-cup)  
-**Coverage:** Tournament-level records, 1930–2014  
-**Key fields:** Year, host country, winner, runners-up, goals scored, attendance, number of teams  
-**Used for:** Tournament-level context, expansion event markers (1982, 1998)
+**File:** `world_cup_matches.csv`  
+**Source:** [Fjelstul World Cup Database](https://github.com/jfjelstul/worldcup), Joshua C. Fjelstul, Ph.D. — CC BY-SA 4.0  
+**Coverage:** All men's World Cup matches, 1930–2022 (22 tournaments, 964 matches after filtering women's tournaments)  
+**Key fields:** Tournament ID, match date, stage name, group name, group stage flag, knockout stage flag, home/away team name, home/away score, extra time flag, penalty shootout flag  
+**Used for:** Identifying group stage matches, stage lookup for merging with results data
 
 ---
 
-### 3. World Cup player records
-
-**File:** `WorldCupPlayers.csv`  
-**Source:** [Kaggle — FIFA World Cup Dataset](https://www.kaggle.com/datasets/abecklas/fifa-world-cup)  
-**Coverage:** Player-level appearance data, 1930–2014  
-**Key fields:** Player name, team, position, event (goal, card, substitution)  
-**Used for:** Supplementary context; not part of primary competitiveness analysis
-
----
-
-### 4. International match results (full history)
+### 2. International match results (full history)
 
 **File:** `results.csv`  
 **Source:** [Kaggle — International Football Results from 1872 to 2026](https://www.kaggle.com/datasets/martj42/international-football-results-from-1872-to-2017), maintained by Mart Jürisoo  
-**Coverage:** All international fixtures, 1872–2026  
+**Coverage:** All international fixtures, 1872–2026 (49,287 matches)  
 **Key fields:** Date, home team, away team, home score, away score, tournament, city, country, neutral ground flag  
-**Used for:** Calculating national team Elo ratings from first principles across the full historical record
+**Used for:** Calculating national team Elo ratings from first principles across the full historical record. Primary source of match results.
+
+---
+
+### 3. International shootout results
+
+**File:** `shootouts.csv`  
+**Source:** [Kaggle — International Football Results from 1872 to 2026](https://www.kaggle.com/datasets/martj42/international-football-results-from-1872-to-2017)  
+**Coverage:** 675 penalty shootout outcomes across international matches  
+**Key fields:** Date, home team, away team, winner  
+**Used for:** Identifying shootout matches in Elo calculation. Shootout results are treated as draws — the 90 minutes of football is the signal; penalty outcomes are not.
+
+---
+
+### 4. Former country names
+
+**File:** `former_names.csv`  
+**Source:** [Kaggle — International Football Results from 1872 to 2026](https://www.kaggle.com/datasets/martj42/international-football-results-from-1872-to-2017)  
+**Coverage:** Name mappings for nations that have changed names or dissolved  
+**Key fields:** Current name, former name, years active  
+**Used for:** Reference during team name normalisation
 
 ---
 
@@ -77,31 +77,11 @@ All raw data lives in `pieces/01-world-cup-48/data/raw/` and is not modified aft
 **Source:** [Kaggle — International Football Results from 1872 to 2026](https://www.kaggle.com/datasets/martj42/international-football-results-from-1872-to-2017)  
 **Coverage:** Goal-level records for international matches  
 **Key fields:** Date, home team, away team, scorer, minute, own goal flag, penalty flag  
-**Used for:** Supplementary; potential use in goal type breakdowns if editorially relevant
+**Used for:** Supplementary; not part of primary analysis
 
 ---
 
-### 6. International shootout results
-
-**File:** `shootouts.csv`  
-**Source:** [Kaggle — International Football Results from 1872 to 2026](https://www.kaggle.com/datasets/martj42/international-football-results-from-1872-to-2017)  
-**Coverage:** Penalty shootout outcomes for international matches  
-**Key fields:** Date, home team, away team, winner  
-**Used for:** Ensuring shootout matches are handled correctly in Elo calculations — shootout results are treated as draws for Elo purposes, per eloratings.net methodology
-
----
-
-### 7. Former country names
-
-**File:** `former_names.csv`  
-**Source:** [Kaggle — International Football Results from 1872 to 2026](https://www.kaggle.com/datasets/martj42/international-football-results-from-1872-to-2017)  
-**Coverage:** Name mapping for nations that have changed names or dissolved  
-**Key fields:** Current name, former name, years active  
-**Used for:** Team name normalisation across datasets — critical for merging historical records (e.g. West Germany → Germany, Soviet Union → Russia/successor states)
-
----
-
-### 8. 2026 qualifier Elo profiles (modelled — not yet built)
+### 6. 2026 qualifier Elo profiles (modelled — not yet built)
 
 **Source:** Derived from `results.csv` Elo calculations + FIFA confirmed confederation allocations  
 **Method:** The 16 new berths created by expansion are distributed by confederation. For each confederation, the Elo distribution of nations at the margin of historic qualification thresholds is used to estimate the likely competitive profile of new entrants. This is a projection, not a confirmed team list.
@@ -126,16 +106,23 @@ All raw data lives in `pieces/01-world-cup-48/data/raw/` and is not modified aft
 
 ### Elo ratings
 
-Elo ratings are calculated from scratch using `results.csv` — the full international match history from 1872. This gives us each team's Elo at any point in time, including at the start of each World Cup group stage.
+Elo ratings are calculated from scratch using `results.csv` — the full international match history from 1872 to 2026. This gives us each team's Elo at any point in time, including at the start of each World Cup group stage.
 
 We follow the eloratings.net methodology:
 - All teams initialised at 1500
-- K-factor varies by match type: 60 (World Cup knockout), 50 (continental finals), 40 (World Cup group / qualifiers), 30 (other tournaments), 20 (friendlies)
+- K-factor varies by match type: 60 (World Cup matches), 50 (continental championships), 40 (World Cup qualifiers and other major qualifiers), 30 (other competitive matches), 20 (friendlies)
 - K adjusted upward for goal margin: ×1.5 for 2-goal wins, ×1.75 for 3-goal wins, scaling further beyond that
-- Shootout results recorded as draws for Elo purposes (using `shootouts.csv` to identify these matches)
-- Home advantage: +100 Elo points added to home team's effective rating when not on neutral ground
+- Shootout results recorded as draws for Elo purposes — `shootouts.csv` identifies which matches went to penalties; the shootout winner is irrelevant to Elo
+- Home advantage: +100 Elo points added to home team's effective rating when match is not on neutral ground
 
-The pre-calculated Elo dataset (`saifalnimri/international-football-elo-ratings` on Kaggle) is retained as a cross-check against our derived ratings.
+**Validation:** Germany's Elo at 2014 WC entry: 2102. Brazil's Elo at 1970 WC entry: 1881. Top-rated team ever at WC entry: Brazil 2022 at 2229. All values consistent with expectations.
+
+**Note on cross-era comparison:** Absolute Elo values are not directly comparable across eras — the rating pool inflates over time as more teams accumulate history. All cross-era analysis uses Elo *gaps between teams within a tournament* rather than absolute values.
+
+**Known exclusions** — three teams appear in WC match data but have no Elo rating due to gaps in the results record:
+- East Germany (1974) — dissolved, no results data
+- Yugoslavia (1998) — banned from international football 1992–1994; results data ends 1992
+- Serbia and Montenegro (2006) — not present as a combined entity in results.csv
 
 ---
 
@@ -206,16 +193,24 @@ This produces a before/during/after competitive profile benchmarked against 2026
 ```
 pieces/01-world-cup-48/
 ├── README.md                   ← You are here
+├── Makefile
 ├── data/
 │   ├── raw/                    ← Source data, unmodified, not committed to git
-│   │   ├── WorldCupMatches.csv
-│   │   ├── WorldCups.csv
-│   │   ├── WorldCupPlayers.csv
+│   │   ├── world_cup_matches.csv
 │   │   ├── results.csv
-│   │   ├── goalscorers.csv
 │   │   ├── shootouts.csv
+│   │   ├── goalscorers.csv
 │   │   └── former_names.csv
 │   └── processed/              ← Cleaned and transformed, committed to git
+│       ├── wc_matches_clean.csv
+│       ├── results_clean.csv
+│       ├── elo_ratings.csv
+│       ├── elo_at_wc_entry.csv
+│       └── name_audit.txt
+├── scripts/
+│   ├── normalize_team_names.py
+│   └── calculate_elo.py
+├── analysis/
 ├── viz/
 │   └── src/
 └── writing/
@@ -237,8 +232,8 @@ src/                            ← Shared utilities across all pieces
 | Task | Status |
 |------|--------|
 | Data acquisition | ✅ Complete |
-| Team name normalisation | ⬜ Not started |
-| Elo calculation | ⬜ Not started |
+| Team name normalisation | ✅ Complete |
+| Elo calculation | ✅ Complete |
 | CIS calculation | ⬜ Not started |
 | Upset rate analysis | ⬜ Not started |
 | 2026 entrant modelling | ⬜ Not started |
@@ -263,4 +258,4 @@ We started with two competing hypotheses — that expansion dilutes quality, and
 
 ---
 
-*Last updated: April 2026 — data acquisition complete, analysis not yet started.*
+*Last updated: April 2026 — data acquisition, team name normalisation, and Elo calculation complete. CIS calculation next.*
