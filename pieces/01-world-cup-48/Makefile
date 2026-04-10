@@ -16,3 +16,6 @@ elo:
  
 cis:
 	$(PYTHON) $(SCRIPTS)/calculate_cis.py
+
+group-standings:
+	$(PYTHON) $(SCRIPTS)/derive_group_standings.py
